@@ -18,6 +18,7 @@ class EventType(str, Enum):
     ORDER_CREATED = "order.created"
     PAYMENT_PROCESSED = "payment.processed"
     PAYMENT_FAILED = "payment.failed"
+    PAYMENT_PENDING = "payment.pending"
     ORDER_SHIPPED = "order.shipped"
     SHIPPING_FAILED = "shipping.failed"
 

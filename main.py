@@ -1,3 +1,5 @@
+import asyncio
+
 from faststream import FastStream
 from faststream.redis import RedisBroker
 from shared.envs import REDIS_HOST, REDIS_PORT
@@ -19,4 +21,4 @@ async def startup():
     await broker.publish("", "test_middle")
 
 if __name__ == "__main__":
-    app()
+    asyncio.run(app.run())

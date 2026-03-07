@@ -24,22 +24,26 @@ O sistema é composto por 4 microserviços independentes que se comunicam atrav�
 1. **Clone o repositório e navegue até o diretório:**
 
 2. **As dependências já foram instaladas com uv:**
+
 ```bash
 # Caso precise reinstalar:
 uv sync
 ```
 
 3. **Configure as variáveis de ambiente:**
+
 ```bash
 cp .env.example .env
 ```
 
 4. **Inicie o Redis:**
+
 ```bash
 docker-compose up -d
 ```
 
 5. **Verifique se o Redis está rodando:**
+
 ```bash
 docker-compose ps
 ```
@@ -67,12 +71,6 @@ ecommerce-eda/
 ```
 Cliente → OrderCreated → PaymentProcessed → OrderShipped → Notificações
 ```
-
-## 📝 Próximos Passos
-
-1. Implementar cada serviço individualmente
-2. Testar fluxo completo
-3. Adicionar tratamento de erros
 
 ## 📚 Tecnologias
 
