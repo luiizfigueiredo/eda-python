@@ -75,6 +75,6 @@ Cliente → OrderCreated → PaymentProcessed → OrderShipped → Notificaçõe
 ## 📚 Tecnologias
 
 - **FastStream**: Framework para event-driven applications
-- **Redis Streams**: Message broker
+- **RabbitMQ**: Message broker
 - **Pydantic**: Validação de dados
 - **uv**: Gerenciador de dependências Python
