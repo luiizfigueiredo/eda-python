@@ -1,10 +1,12 @@
 import asyncio
 
 from faststream import FastStream
-from faststream.redis import RedisBroker
-from shared.envs import REDIS_HOST, REDIS_PORT
+from faststream.rabbit import RabbitBroker
+from shared.envs import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS
 
-broker = RedisBroker(f"redis://{REDIS_HOST}:{REDIS_PORT}")
+broker = RabbitBroker(
+    f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/"
+)
 
 app = FastStream(broker)
 

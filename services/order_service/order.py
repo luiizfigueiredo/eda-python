@@ -9,18 +9,20 @@ from decimal import Decimal
 from uuid import uuid4
 
 from faststream import FastStream
-from faststream.redis import RedisBroker
+from faststream.rabbit import RabbitBroker
 
-from shared.envs import REDIS_HOST, REDIS_PORT
+from shared.envs import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS
 from shared.events import OrderCreatedEvent, EventType
 from shared.models import Customer, OrderItem
 
-broker = RedisBroker(f"redis://{REDIS_HOST}:{REDIS_PORT}")
+broker = RabbitBroker(
+    f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/"
+)
 app = FastStream(broker)
 
 @broker.subscriber(EventType.ORDER_CREATED.value)
 async def next_handler(body):
-    await broker.publish(body, channel=EventType.PAYMENT_PENDING.value)
+    await broker.publish(body, queue=EventType.PAYMENT_PENDING.value)
 
 async def create_mock_order() -> OrderCreatedEvent:
     customer = Customer(
@@ -60,7 +62,7 @@ async def publish_orders():
     
     while True:
         order_event = await create_mock_order()
-        await broker.publish(order_event, channel=EventType.ORDER_CREATED.value)
+        await broker.publish(order_event, queue=EventType.ORDER_CREATED.value)
         await asyncio.sleep(10)
 
 if __name__ == "__main__":

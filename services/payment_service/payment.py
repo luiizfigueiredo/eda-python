@@ -11,9 +11,9 @@ import random
 from uuid import uuid4
 
 from faststream import FastStream
-from faststream.redis import RedisBroker
+from faststream.rabbit import RabbitBroker
 
-from shared.envs import REDIS_HOST, REDIS_PORT
+from shared.envs import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS
 from shared.events import (
     EventType,
     OrderCreatedEvent,
@@ -21,7 +21,9 @@ from shared.events import (
     PaymentProcessedEvent,
 )
 
-broker = RedisBroker(f"redis://{REDIS_HOST}:{REDIS_PORT}")
+broker = RabbitBroker(
+    f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/"
+)
 app = FastStream(broker)
 
 
@@ -38,7 +40,6 @@ async def paymente_processed(payment_processed_event: PaymentProcessedEvent):
     print(
         f"Payment processed successfully: {payment_processed_event.payment_id} for order {payment_processed_event.order_id}"
     )
-    # await broker.publish(payment_processed_event, channel=EventType.PAYMENT_PROCESSED.value)
 
 @broker.subscriber(EventType.PAYMENT_FAILED.value)
 async def payment_failed(payment_failed_event: PaymentFailedEvent):
@@ -46,8 +47,6 @@ async def payment_failed(payment_failed_event: PaymentFailedEvent):
     print(
         f"Payment failed for order {payment_failed_event.order_id} reason: {payment_failed_event.reason}"
     )
-    # await broker.publish(payment_failed_event, channel=EventType.PAYMENT_FAILED.value)
-
 
 
 @broker.subscriber(EventType.PAYMENT_PENDING.value)
@@ -66,14 +65,14 @@ async def handle_payment_pending(order_event: OrderCreatedEvent):
             amount=order_event.total_amount,
             status="approved",
         )
-        await broker.publish(payment_event, channel=EventType.PAYMENT_PROCESSED.value)
+        await broker.publish(payment_event, queue=EventType.PAYMENT_PROCESSED.value)
     else:
         payment_failed_event = PaymentFailedEvent(
             order_id=order_event.order_id,
             reason="Insufficient funds or payment gateway error",
         )
         await broker.publish(
-            payment_failed_event, channel=EventType.PAYMENT_FAILED.value
+            payment_failed_event, queue=EventType.PAYMENT_FAILED.value
         )
 
 if __name__ == "__main__":
