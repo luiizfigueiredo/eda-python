@@ -13,7 +13,7 @@ from uuid import uuid4
 from faststream import FastStream
 from faststream.rabbit import RabbitBroker
 
-from shared.envs import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS
+from shared.envs import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_PORT, RABBITMQ_USER
 from shared.events import (
     EventType,
     OrderCreatedEvent,
@@ -34,16 +34,18 @@ async def process_payment(order_event: OrderCreatedEvent) -> bool:
     success_rate = 0.2
     return random.random() < success_rate
 
+
 @broker.subscriber(EventType.PAYMENT_PROCESSED.value)
-async def paymente_processed(payment_processed_event: PaymentProcessedEvent):
-    """Processa o pagamento quando um pedido é criado."""
+async def payment_processed(payment_processed_event: PaymentProcessedEvent):
+    """Log de eventos de pagamento aprovados."""
     print(
         f"Payment processed successfully: {payment_processed_event.payment_id} for order {payment_processed_event.order_id}"
     )
 
+
 @broker.subscriber(EventType.PAYMENT_FAILED.value)
 async def payment_failed(payment_failed_event: PaymentFailedEvent):
-    """Processa o pagamento quando um pedido é criado."""
+    """Log de eventos de pagamento reprovados."""
     print(
         f"Payment failed for order {payment_failed_event.order_id} reason: {payment_failed_event.reason}"
     )
@@ -51,7 +53,7 @@ async def payment_failed(payment_failed_event: PaymentFailedEvent):
 
 @broker.subscriber(EventType.PAYMENT_PENDING.value)
 async def handle_payment_pending(order_event: OrderCreatedEvent):
-    """Processa o pagamento quando um pedido é criado."""
+    """Processa pagamento e encadeia o fluxo para a logística em caso de sucesso."""
     print(f"Received PaymentPending event: {order_event.order_id}")
     print(f"Amount to process: ${order_event.total_amount}")
 
@@ -66,14 +68,14 @@ async def handle_payment_pending(order_event: OrderCreatedEvent):
             status="approved",
         )
         await broker.publish(payment_event, queue=EventType.PAYMENT_PROCESSED.value)
+        await broker.publish(payment_event, queue=EventType.SHIPPING_PENDING.value)
     else:
         payment_failed_event = PaymentFailedEvent(
             order_id=order_event.order_id,
             reason="Insufficient funds or payment gateway error",
         )
-        await broker.publish(
-            payment_failed_event, queue=EventType.PAYMENT_FAILED.value
-        )
+        await broker.publish(payment_failed_event, queue=EventType.PAYMENT_FAILED.value)
+
 
 if __name__ == "__main__":
     asyncio.run(app.run())

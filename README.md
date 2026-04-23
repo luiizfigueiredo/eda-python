@@ -1,80 +1,79 @@
 # E-commerce com Arquitetura Orientada a Eventos
 
-Sistema simples de e-commerce desenvolvido com **FastStream** e **Redis Streams** para demonstrar conceitos de **Event-Driven Architecture (EDA)**.
+Sistema simples de e-commerce com **FastStream** e **RabbitMQ** para demonstrar conceitos de **Event-Driven Architecture (EDA)**.
 
-## 🏗️ Arquitetura
+## Arquitetura
 
-O sistema é composto por 4 microserviços independentes que se comunicam através de eventos:
+O sistema atual possui 3 microserviços:
 
-- **Order Service**: Gerencia criação de pedidos
-- **Payment Service**: Processa pagamentos
-- **Logistics Service**: Gerencia envios
-- **Notification Service**: Envia notificações
+- **Order Service**: cria pedidos mock e inicia o fluxo.
+- **Payment Service**: processa pagamento e decide aprovação/falha.
+- **Logistics Service**: processa envio após pagamento aprovado.
 
-## 🚀 Setup
+## Fluxo de eventos
 
-### Pré-requisitos
+Fluxo canônico:
+
+`order.created -> payment.pending -> payment.processed | payment.failed -> shipping.pending -> order.shipped | shipping.failed`
+
+## Setup
+
+Pré-requisitos:
 
 - Python 3.11+
 - Docker e Docker Compose
-- uv (gerenciador de dependências)
+- uv
 
-### Instalação
-
-1. **Clone o repositório e navegue até o diretório:**
-
-2. **As dependências já foram instaladas com uv:**
-
-```bash
-# Caso precise reinstalar:
-uv sync
-```
-
-3. **Configure as variáveis de ambiente:**
+Instalação:
 
 ```bash
 cp .env.example .env
-```
-
-4. **Inicie o Redis:**
-
-```bash
-docker-compose up -d
-```
-
-5. **Verifique se o Redis está rodando:**
-
-```bash
+uv sync --group dev
+docker-compose up -d rabbitmq
 docker-compose ps
 ```
 
-## 📁 Estrutura do Projeto
+## Execução dos serviços
 
-```
-ecommerce-eda/
-├── docker-compose.yml          # Configuração do Redis
-├── .env.example                # Exemplo de variáveis de ambiente
-├── pyproject.toml              # Configuração do uv
-├── shared/                     # Código compartilhado entre serviços
-│   ├── events.py              # Definição de eventos
-│   └── models.py              # Modelos de dados
-├── services/                   # Microserviços
-│   ├── order_service/
-│   ├── payment_service/
-│   ├── logistics_service/
-│   └── notification_service/
-└── scripts/                    # Scripts utilitários
+Em 3 terminais separados, a partir da raiz do projeto:
+
+Terminal 1:
+
+```bash
+uv run python services/order_service/order.py
 ```
 
-## 🔄 Fluxo de Eventos
+Terminal 2:
 
+```bash
+uv run python services/payment_service/payment.py
 ```
-Cliente → OrderCreated → PaymentProcessed → OrderShipped → Notificações
+
+Terminal 3:
+
+```bash
+uv run python services/logistics_service/logistic.py
 ```
 
-## 📚 Tecnologias
+## Validação E2E manual
 
-- **FastStream**: Framework para event-driven applications
-- **RabbitMQ**: Message broker
-- **Pydantic**: Validação de dados
-- **uv**: Gerenciador de dependências Python
+Checklist rápido:
+
+1. Confirmar que `order_service` publica pedidos periodicamente.
+2. Confirmar no `payment_service` logs de `Received PaymentPending event`.
+3. Em aprovação, confirmar que pagamento segue para logística.
+4. Confirmar no `logistics_service` logs de `Processing shipping for order`.
+5. Verificar saída final com `Shipping success` (`order.shipped`) ou `Shipping failed`.
+
+## Testes
+
+Rodar testes:
+
+```bash
+uv run pytest -q
+```
+
+## Observações
+
+- RabbitMQ é o broker principal para o fluxo core.
+- Redis está no `docker-compose` como opcional, mas não faz parte do pipeline principal desta demo.
